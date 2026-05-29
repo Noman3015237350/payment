@@ -22,7 +22,7 @@ export default async function handler(req, res) {
   
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   
   if (req.method === 'OPTIONS') {
@@ -50,19 +50,19 @@ export default async function handler(req, res) {
     }
 
     // Route: /api/createpaymentlink
-    if (pathname === '/api/createpaymentlink' && req.method === 'POST') {
-      const { Id, apikey, amount } = req.query;
+    if (pathname === '/api/createpaymentlink' && (req.method === 'POST' || req.method === 'GET')) {
+      const { Id, apikey, amount } = req.method === 'GET' ? req.query : req.body;
       if (!validateApiKey(Id, apikey)) return res.status(401).json({ error: 'Invalid ID or API key' });
       if (!amount || isNaN(amount)) return res.status(400).json({ error: 'Valid amount required' });
       
-      const paymentLink = `https://payment.example.com/pay/${generateId()}?amount=${amount}&user=${Id}`;
+      const paymentLink = `https://payment-pi-one.vercel.app/payment.html?amount=${amount}&user=${Id}`;
       paymentLinks.push({ link: paymentLink, userId: Id, amount, status: 'pending', createdAt: new Date() });
       return res.status(200).json({ success: true, paymentlink: paymentLink });
     }
 
     // Route: /api/checkmassage (BKASH & NOGOD SMS support)
-    if (pathname === '/api/checkmassage' && req.method === 'GET') {
-      const { Id, apikey, paymentlink, amount } = req.query;
+    if (pathname === '/api/checkmassage' && (req.method === 'GET' || req.method === 'POST')) {
+      const { Id, apikey, paymentlink, amount } = req.method === 'GET' ? req.query : req.body;
       if (!validateApiKey(Id, apikey)) return res.status(401).json({ error: 'Invalid ID or API key' });
       
       // Check SMS permission from device
@@ -100,8 +100,8 @@ export default async function handler(req, res) {
     }
 
     // Route: /api/payment-status
-    if (pathname === '/api/payment-status' && req.method === 'GET') {
-      const { Id, apikey, paymentlink, amount } = req.query;
+    if (pathname === '/api/payment-status' && (req.method === 'GET' || req.method === 'POST')) {
+      const { Id, apikey, paymentlink, amount } = req.method === 'GET' ? req.query : req.body;
       if (!validateApiKey(Id, apikey)) return res.status(401).json({ error: 'Invalid ID or API key' });
       
       const payment = paymentLinks.find(p => p.link === paymentlink && p.userId === Id);
@@ -115,25 +115,44 @@ export default async function handler(req, res) {
       });
     }
 
-    // Route: /api/SMSpermission
-    if (pathname === '/api/SMSpermission' && req.method === 'POST') {
-      const { Id, apikey, grant } = req.body;
-      if (!validateApiKey(Id, apikey)) return res.status(401).json({ error: 'Invalid ID or API key' });
-      
-      if (grant === true) {
-        smsPermissions.push({ userId: Id, active: true, grantedAt: new Date() });
-        return res.status(200).json({ 
-          success: true, 
-          message: 'SMS permission granted. You can now receive SMS notifications for BKASH and NOGOD.'
+    // Route: /api/SMSpermission (FIXED - supports both GET and POST)
+    if (pathname === '/api/SMSpermission') {
+      if (req.method === 'POST') {
+        const { Id, apikey, grant } = req.body;
+        if (!validateApiKey(Id, apikey)) return res.status(401).json({ error: 'Invalid ID or API key' });
+        
+        if (grant === true) {
+          // Remove existing permission if any
+          const existingIndex = smsPermissions.findIndex(p => p.userId === Id);
+          if (existingIndex !== -1) {
+            smsPermissions[existingIndex] = { userId: Id, active: true, grantedAt: new Date() };
+          } else {
+            smsPermissions.push({ userId: Id, active: true, grantedAt: new Date() });
+          }
+          return res.status(200).json({ 
+            success: true, 
+            message: 'SMS permission granted. You can now receive SMS notifications for BKASH and NOGOD.'
+          });
+        } else {
+          return res.status(400).json({ error: 'SMS permission required for this operation' });
+        }
+      } else if (req.method === 'GET') {
+        // GET request returns current permission status
+        const { Id, apikey } = req.query;
+        if (!validateApiKey(Id, apikey)) return res.status(401).json({ error: 'Invalid ID or API key' });
+        
+        const hasPermission = smsPermissions.some(p => p.userId === Id && p.active);
+        return res.status(200).json({
+          success: true,
+          hasSmsPermission: hasPermission,
+          message: hasPermission ? 'SMS permission is granted' : 'SMS permission not granted yet'
         });
-      } else {
-        return res.status(400).json({ error: 'SMS permission required for this operation' });
       }
     }
 
     // Route: /api/enteramount
-    if (pathname === '/api/enteramount' && req.method === 'POST') {
-      const { apikey, enteramount } = req.query;
+    if (pathname === '/api/enteramount' && (req.method === 'POST' || req.method === 'GET')) {
+      const { apikey, enteramount } = req.method === 'GET' ? req.query : req.body;
       const apiKey = findApiKey(apikey);
       if (!apiKey) return res.status(401).json({ error: 'Invalid API key' });
       
