@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BKASH Deposit Payment Gateway</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;600;700&display=swap');
+        body {
+            font-family: 'Noto Sans Bengali', sans-serif;
+        }
+        .toast {
+            transition: all 0.3s ease;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex justify-center items-center min-h-screen">
+
+    <div class="w-full max-w-md bg-white shadow-md min-h-screen flex flex-col justify-between">
+        
+        <div>
+            <div class="bg-[#006A4E] text-white p-4 flex justify-between items-center">
+                <div>
+                    <h1 class="text-xl font-bold tracking-wide">BDT Payment</h1>
+                    <p class="text-xs font-normal mt-0.5">কম বা বেশি ক্যাশআউট করবেন না</p>
+                </div>
+                <div class="bg-white text-gray-800 text-xs rounded font-semibold flex overflow-hidden border border-gray-300">
+                    <span class="bg-gray-300 px-2 py-1 text-gray-700">বাং</span>
+                    <span class="px-2 py-1 text-gray-500">EN</span>
+                </div>
+            </div>
+
+            <div class="p-4 space-y-4">
+                
+                <div id="toastMessage" class="hidden toast fixed top-4 left-1/2 transform -translate-x-1/2 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 text-sm font-medium"></div>
+
+                <p class="text-red-600 font-bold text-[13px] leading-relaxed">
+                    আপনি যদি টাকার পরিমাণ পরিবর্তন করেন (BDT), আপনি ক্রেডিট পেতে সক্ষম হবেন না।
+                </p>
+
+                <div class="border border-[#00A86B] bg-[#F4FBF7] rounded-md p-3 text-xs leading-relaxed text-slate-700">
+                    <span class="text-[#00A86B] font-bold">BKASH:</span> আপনার অর্থ সঠিকভাবে জমা হওয়ার জন্য, দয়া করে <span class="text-red-500 font-bold">"Send Money"</span> বিকল্পটি ব্যবহার করুন। <span class="text-red-500 font-bold">"Send Money"</span> ব্যবহার করবেন, ক্যাশ আউট করবেন না এতে লেনদেন ব্যর্থ বা বিলম্বিত হতে পারে।
+                </div>
+
+                <div class="bg-[#D12053] rounded-md p-3 flex items-center space-x-3 text-white">
+                    <div class="w-10 h-10 bg-white rounded-full flex items-center justify-center border border-pink-200 shrink-0">
+                        <svg class="w-7 h-7 text-[#D12053]" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2L2 22h20L12 2zm0 3.99L19.53 19H4.47L12 5.99z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h2 class="font-bold text-base tracking-wide">BKASH Deposit</h2>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold text-gray-800">
+                        Wallet No <span class="text-purple-600">*</span>
+                    </label>
+                    <p class="text-xs text-gray-600 mt-0.5">এই BKASH নাম্বারে শুধুমাত্র ক্যাশআউট গ্রহণ করা হয়</p>
+                    
+                    <div class="mt-2 flex items-center bg-[#F9FAFB] border border-gray-200 rounded-md p-3 justify-between">
+                        <span class="font-bold text-gray-800 tracking-wider text-base">01869325626</span>
+                        <button onclick="copyNumber()" class="text-emerald-600 hover:text-emerald-700 focus:outline-none cursor-pointer" title="Copy Number">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm text-gray-800 font-medium">
+                        ক্যাশআউটের TrxID নাম্বারটি লিখুন <span class="text-red-500 font-bold">(প্রয়োজন)</span>
+                    </label>
+                    <div class="mt-2">
+                        <input type="text" id="trxId" placeholder="TrxID অবশ্যই পূরণ করতে হবে!" class="w-full border border-red-500 rounded-md p-3 text-sm focus:outline-none placeholder-gray-400 bg-white">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm text-gray-800 font-medium">
+                        Amount (BDT)
+                    </label>
+                    <div class="mt-2">
+                        <input type="number" id="amount" placeholder="Enter amount" class="w-full border border-gray-300 rounded-md p-3 text-sm focus:outline-none focus:border-[#006A4E] bg-white">
+                    </div>
+                </div>
+
+                <p class="text-center text-gray-700 text-sm font-medium pt-2">
+                    অনুগ্রহ করে নিম্নলিখিত সময়ের বেশি অর্থ প্রদান করবেন না
+                </p>
+
+                <button onclick="processPayment()" class="w-full bg-[#006A4E] text-white rounded-md py-3 text-center font-semibold text-sm hover:bg-[#005a42] transition-colors cursor-pointer mt-2">
+                    নিশ্চিত ও পেমেন্ট ভেরিফাই করুন
+                </button>
+
+                <div class="space-y-3 pt-2">
+                    <h3 class="font-bold text-gray-900 text-sm">সতর্কতাঃ</h3>
+                    
+                    <p class="text-red-600 font-bold text-xs text-center">
+                        লেনদেন আইডি সঠিকভাবে পূরণ করতে হবে, অন্যথায় স্কর ব্যর্থ হবে !
+                    </p>
+                    
+                    <p class="text-gray-500 text-xs leading-relaxed">
+                        অনুগ্রহ করে নিশ্চিত হয়ে নিন যে আপনি <span class="font-bold text-gray-700">BKASH deposit</span> ওয়ালেট নাম্বারে ক্যাশ আউট করছেন। এই নাম্বারের অন্য কোন ওয়ালেট থেকে ক্যাশ আউট করলে সেই টাকা পাওয়ার কোন সম্ভাবনা নাই
+                    </p>
+                </div>
+
+                <p class="text-center text-xs text-gray-500 pt-4">
+                    You can watch the <a href="#" class="text-blue-600 underline font-bold">BKASH payment video</a> to know how to do this payment.
+                </p>
+
+            </div>
+        </div>
+
+        <div class="h-12 bg-white w-full"></div>
+    </div>
+
+    <script>
+        // Get URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get('user');
+        const amountParam = urlParams.get('amount');
+        
+        if (amountParam) {
+            document.getElementById('amount').value = amountParam;
+        }
+        
+        // Store credentials (in real app, get from backend)
+        let apiKey = localStorage.getItem('apiKey');
+        let currentUserId = userId || localStorage.getItem('userId');
+        
+        // Function to show toast message
+        function showToast(message, isError = true) {
+            const toast = document.getElementById('toastMessage');
+            toast.textContent = message;
+            toast.classList.remove('hidden', 'bg-green-500', 'bg-red-500');
+            toast.classList.add(isError ? 'bg-red-500' : 'bg-green-500');
+            toast.classList.remove('hidden');
+            
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 3000);
+        }
+        
+        // Copy wallet number
+        function copyNumber() {
+            const number = '01869325626';
+            navigator.clipboard.writeText(number);
+            showToast('নাম্বার কপি হয়েছে!', false);
+        }
+        
+        // Request SMS permission
+        async function requestSmsPermission() {
+            if (!currentUserId || !apiKey) {
+                showToast('Please create ID and API key first');
+                return false;
+            }
+            
+            try {
+                const response = await fetch('/api/SMSpermission', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        Id: currentUserId,
+                        apikey: apiKey,
+                        grant: true
+                    })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    showToast('SMS permission granted!', false);
+                    return true;
+                } else {
+                    showToast(data.error || 'Failed to get SMS permission');
+                    return false;
+                }
+            } catch (error) {
+                showToast('Error requesting SMS permission');
+                return false;
+            }
+        }
+        
+        // Check SMS for payment verification
+        async function checkSmsForPayment(paymentLink, amount) {
+            try {
+                const response = await fetch(`/api/checkmassage?Id=${currentUserId}&apikey=${apiKey}&paymentlink=${encodeURIComponent(paymentLink)}&amount=${amount}`);
+                const data = await response.json();
+                
+                if (data.success && data.smsData) {
+                    showToast('SMS verified! Payment detected.', false);
+                    return true;
+                } else if (data.requiresDevicePermission) {
+                    const granted = await requestSmsPermission();
+                    if (granted) {
+                        return checkSmsForPayment(paymentLink, amount);
+                    }
+                }
+                return false;
+            } catch (error) {
+                console.error('SMS check error:', error);
+                return false;
+            }
+        }
+        
+        // Main payment processing function
+        async function processPayment() {
+            const trxId = document.getElementById('trxId').value.trim();
+            const amount = document.getElementById('amount').value;
+            
+            if (!trxId) {
+                showToast('দয়া করে TrxID নাম্বারটি লিখুন!');
+                return;
+            }
+            
+            if (!amount || amount <= 0) {
+                showToast('দয়া করে সঠিক অ্যামাউন্ট লিখুন!');
+                return;
+            }
+            
+            // Check if we have user ID and API key
+            if (!currentUserId) {
+                showToast('প্রথমে একটি আইডি তৈরি করুন। /api/createid ব্যবহার করুন');
+                return;
+            }
+            
+            if (!apiKey) {
+                showToast('প্রথমে একটি API কী তৈরি করুন। /api/createapikey ব্যবহার করুন');
+                return;
+            }
+            
+            // Show loading state
+            const button = event.target;
+            const originalText = button.textContent;
+            button.textContent = 'প্রসেসিং...';
+            button.disabled = true;
+            
+            try {
+                // Create payment link
+                const paymentResponse = await fetch(`/api/createpaymentlink?Id=${currentUserId}&apikey=${apiKey}&amount=${amount}`, {
+                    method: 'POST'
+                });
+                
+                const paymentData = await paymentResponse.json();
+                
+                if (!paymentData.success) {
+                    throw new Error(paymentData.error || 'Failed to create payment link');
+                }
+                
+                // Check SMS for verification
+                showToast('SMS চেক করা হচ্ছে...', false);
+                const isVerified = await checkSmsForPayment(paymentData.paymentlink, amount);
+                
+                if (isVerified) {
+                    showToast(`পেমেন্ট সফল! TrxID: ${trxId}`, false);
+                    // You can redirect or show success message
+                    setTimeout(() => {
+                        alert(`Payment Successful!\nAmount: ${amount} BDT\nTrxID: ${trxId}`);
+                    }, 1000);
+                } else {
+                    showToast('পেমেন্ট ভেরিফিকেশন ব্যর্থ। দয়া করে আবার চেষ্টা করুন।');
+                }
+                
+            } catch (error) {
+                showToast(error.message || 'পেমেন্ট প্রসেসিং এ ত্রুটি হয়েছে');
+                console.error('Payment error:', error);
+            } finally {
+                button.textContent = originalText;
+                button.disabled = false;
+            }
+        }
+        
+        // Auto-create ID and API key if not exists (for demo)
+        async function autoSetup() {
+            if (!currentUserId) {
+                try {
+                    const response = await fetch('/api/createid', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name: 'User', email: 'user@example.com' })
+                    });
+                    const data = await response.json();
+                    if (data.success) {
+                        currentUserId = data.id;
+                        localStorage.setItem('userId', currentUserId);
+                        
+                        // Create API key
+                        const apiResponse = await fetch(`/api/createapikey?Id=${currentUserId}`, {
+                            method: 'POST'
+                        });
+                        const apiData = await apiResponse.json();
+                        if (apiData.success) {
+                            apiKey = apiData.apikey;
+                            localStorage.setItem('apiKey', apiKey);
+                            showToast('Auto-setup complete!', false);
+                        }
+                    }
+                } catch (error) {
+                    console.error('Auto setup error:', error);
+                }
+            }
+        }
+        
+        // Run auto setup on page load
+        autoSetup();
+    </script>
+</body>
+</html>
